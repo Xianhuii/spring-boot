@@ -80,7 +80,7 @@ public final class ImportCandidates implements Iterable<String> {
 	public static ImportCandidates load(Class<?> annotation, ClassLoader classLoader) {
 		Assert.notNull(annotation, "'annotation' must not be null");
 		ClassLoader classLoaderToUse = decideClassloader(classLoader);
-		String location = String.format(LOCATION, annotation.getName());
+		String location = String.format(LOCATION, annotation.getName()); // jxh: META-INF/spring/%s.imports
 		Enumeration<URL> urls = findUrlsInClasspath(classLoaderToUse, location);
 		List<String> importCandidates = new ArrayList<>();
 		while (urls.hasMoreElements()) {

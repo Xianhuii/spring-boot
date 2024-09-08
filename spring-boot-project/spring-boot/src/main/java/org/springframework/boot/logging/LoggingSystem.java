@@ -57,7 +57,7 @@ public abstract class LoggingSystem {
 	 */
 	public static final String ROOT_LOGGER_NAME = "ROOT";
 
-	private static final LoggingSystemFactory SYSTEM_FACTORY = LoggingSystemFactory.fromSpringFactories();
+	private static final LoggingSystemFactory SYSTEM_FACTORY = LoggingSystemFactory.fromSpringFactories(); // jxh: SPI获取LoggingSystemFactory
 
 	/**
 	 * The name of an {@link Environment} property used to indicate that a correlation ID
@@ -164,7 +164,7 @@ public abstract class LoggingSystem {
 			}
 			return get(classLoader, loggingSystemClassName);
 		}
-		LoggingSystem loggingSystem = SYSTEM_FACTORY.getLoggingSystem(classLoader);
+		LoggingSystem loggingSystem = SYSTEM_FACTORY.getLoggingSystem(classLoader); // jxh: SPI获取LoggingSystemFactory，创建LoggingSystem
 		Assert.state(loggingSystem != null, "No suitable logging system located");
 		return loggingSystem;
 	}

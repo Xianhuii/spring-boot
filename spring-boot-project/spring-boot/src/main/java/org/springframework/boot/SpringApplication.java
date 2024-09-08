@@ -185,7 +185,7 @@ import org.springframework.util.function.ThrowingSupplier;
  * @see #run(Class[], String[])
  * @see #SpringApplication(Class...)
  */
-public class SpringApplication {
+public class SpringApplication { // jxh: 启动器
 
 	/**
 	 * Default banner location.
@@ -271,8 +271,8 @@ public class SpringApplication {
 	public SpringApplication(ResourceLoader resourceLoader, Class<?>... primarySources) {
 		this.resourceLoader = resourceLoader;
 		Assert.notNull(primarySources, "PrimarySources must not be null");
-		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
-		this.properties.setWebApplicationType(WebApplicationType.deduceFromClasspath());
+		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources)); // jxh: 设置primarySources
+		this.properties.setWebApplicationType(WebApplicationType.deduceFromClasspath()); // jxh: 设置webApplicationType
 		this.bootstrapRegistryInitializers = new ArrayList<>(
 				getSpringFactoriesInstances(BootstrapRegistryInitializer.class));
 		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
@@ -298,30 +298,40 @@ public class SpringApplication {
 	 * @param args the application arguments (usually passed from a Java main method)
 	 * @return a running {@link ApplicationContext}
 	 */
-	public ConfigurableApplicationContext run(String... args) {
+	public ConfigurableApplicationContext run(String... args) { // jxh: 启动Spring应用
 		Startup startup = Startup.create();
 		if (this.properties.isRegisterShutdownHook()) {
 			SpringApplication.shutdownHook.enableShutdownHookAddition();
 		}
+		// jxh: 创建DefaultBootstrapContext
 		DefaultBootstrapContext bootstrapContext = createBootstrapContext();
 		ConfigurableApplicationContext context = null;
 		configureHeadlessProperty();
+		// jxh: 获取SpringApplicationRunListeners
 		SpringApplicationRunListeners listeners = getRunListeners(args);
 		listeners.starting(bootstrapContext, this.mainApplicationClass);
 		try {
+			// jxh: 环境配置预处理
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, bootstrapContext, applicationArguments);
 			Banner printedBanner = printBanner(environment);
+
+			// jxh: 创建应用上下文
 			context = createApplicationContext();
 			context.setApplicationStartup(this.applicationStartup);
+			// jxh: 应用上下文预处理
 			prepareContext(bootstrapContext, context, environment, listeners, applicationArguments, printedBanner);
+			// jxh: 刷新应用上下文
 			refreshContext(context);
+			// jxh: 应用上下文刷新后处理
 			afterRefresh(context, applicationArguments);
 			startup.started();
 			if (this.properties.isLogStartupInfo()) {
 				new StartupInfoLogger(this.mainApplicationClass, environment).logStarted(getApplicationLog(), startup);
 			}
+			// jxh: 触发SpringApplicationRunListeners#started（ApplicationStartedEvent）
 			listeners.started(context, startup.timeTakenToStarted());
+			// jxh: 执行ApplicationRunner和CommandLineRunner
 			callRunners(context, applicationArguments);
 		}
 		catch (Throwable ex) {
@@ -329,7 +339,7 @@ public class SpringApplication {
 		}
 		try {
 			if (context.isRunning()) {
-				listeners.ready(context, startup.ready());
+				listeners.ready(context, startup.ready()); // 触发SpringApplicationRunListeners#ready（ApplicationReadyEvent）
 			}
 		}
 		catch (Throwable ex) {
@@ -340,6 +350,7 @@ public class SpringApplication {
 
 	private DefaultBootstrapContext createBootstrapContext() {
 		DefaultBootstrapContext bootstrapContext = new DefaultBootstrapContext();
+		// jxh: 触发BootstrapRegistryInitializer#initialize
 		this.bootstrapRegistryInitializers.forEach((initializer) -> initializer.initialize(bootstrapContext));
 		return bootstrapContext;
 	}
@@ -348,9 +359,9 @@ public class SpringApplication {
 			DefaultBootstrapContext bootstrapContext, ApplicationArguments applicationArguments) {
 		// Create and configure the environment
 		ConfigurableEnvironment environment = getOrCreateEnvironment();
-		configureEnvironment(environment, applicationArguments.getSourceArgs());
+		configureEnvironment(environment, applicationArguments.getSourceArgs()); // jxh: 添加命令行参数和应用信息环境配置
 		ConfigurationPropertySources.attach(environment);
-		listeners.environmentPrepared(bootstrapContext, environment);
+		listeners.environmentPrepared(bootstrapContext, environment); // jxh: 触发SpringApplicationRunListener#environmentPrepared
 		ApplicationInfoPropertySource.moveToEnd(environment);
 		DefaultPropertiesPropertySource.moveToEnd(environment);
 		Assert.state(!environment.containsProperty("spring.main.environment-prefix"),
@@ -380,18 +391,19 @@ public class SpringApplication {
 	private void prepareContext(DefaultBootstrapContext bootstrapContext, ConfigurableApplicationContext context,
 			ConfigurableEnvironment environment, SpringApplicationRunListeners listeners,
 			ApplicationArguments applicationArguments, Banner printedBanner) {
-		context.setEnvironment(environment);
-		postProcessApplicationContext(context);
+		context.setEnvironment(environment); // jxh: 设置环境配置
+		postProcessApplicationContext(context); // jxh: 应用上下文后处理
 		addAotGeneratedInitializerIfNecessary(this.initializers);
-		applyInitializers(context);
-		listeners.contextPrepared(context);
-		bootstrapContext.close(context);
+		applyInitializers(context); // jxh: 触发ApplicationContextInitializer#initialize
+		listeners.contextPrepared(context); // jxh: 触发SpringApplicationRunListeners#contextPrepared
+		bootstrapContext.close(context); // jxh: 触发ApplicationListener#BootstrapContextClosedEvent
 		if (this.properties.isLogStartupInfo()) {
 			logStartupInfo(context.getParent() == null);
 			logStartupInfo(context);
 			logStartupProfileInfo(context);
 		}
 		// Add boot specific singleton beans
+		// jxh: 添加启动器指定单例bean
 		ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
 		beanFactory.registerSingleton("springApplicationArguments", applicationArguments);
 		if (printedBanner != null) {
@@ -416,6 +428,8 @@ public class SpringApplication {
 			Assert.notEmpty(sources, "Sources must not be empty");
 			load(context, sources.toArray(new Object[0]));
 		}
+
+		// jxh: 触发SpringApplicationRunListeners#contextLoaded（ApplicationContextInitializedEvent）
 		listeners.contextLoaded(context);
 	}
 
@@ -450,6 +464,7 @@ public class SpringApplication {
 	private SpringApplicationRunListeners getRunListeners(String[] args) {
 		ArgumentResolver argumentResolver = ArgumentResolver.of(SpringApplication.class, this);
 		argumentResolver = argumentResolver.and(String[].class, args);
+		// jxh: SPI获取SpringApplicationRunListener
 		List<SpringApplicationRunListener> listeners = getSpringFactoriesInstances(SpringApplicationRunListener.class,
 				argumentResolver);
 		SpringApplicationHook hook = applicationHook.get();
@@ -473,7 +488,7 @@ public class SpringApplication {
 		if (this.environment != null) {
 			return this.environment;
 		}
-		ConfigurableEnvironment environment = this.applicationContextFactory
+		ConfigurableEnvironment environment = this.applicationContextFactory // jxh: 根据应用类型创建ConfigurableEnvironment
 			.createEnvironment(this.properties.getWebApplicationType());
 		if (environment == null && this.applicationContextFactory != ApplicationContextFactory.DEFAULT) {
 			environment = ApplicationContextFactory.DEFAULT.createEnvironment(this.properties.getWebApplicationType());
@@ -496,7 +511,7 @@ public class SpringApplication {
 		if (this.addConversionService) {
 			environment.setConversionService(new ApplicationConversionService());
 		}
-		configurePropertySources(environment, args);
+		configurePropertySources(environment, args); // jxh: 添加命令行参数环境配置
 		configureProfiles(environment, args);
 	}
 

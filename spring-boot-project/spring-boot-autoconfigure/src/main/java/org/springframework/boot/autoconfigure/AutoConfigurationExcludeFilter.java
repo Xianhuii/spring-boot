@@ -47,7 +47,8 @@ public class AutoConfigurationExcludeFilter implements TypeFilter, BeanClassLoad
 	@Override
 	public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory)
 			throws IOException {
-		return isConfiguration(metadataReader) && isAutoConfiguration(metadataReader);
+		return isConfiguration(metadataReader) // jxh: 标注@Configuration
+				&& isAutoConfiguration(metadataReader); // jxh: 标注@AutoConfiguration 或 META-INF/spring/%s.imports导入
 	}
 
 	private boolean isConfiguration(MetadataReader metadataReader) {

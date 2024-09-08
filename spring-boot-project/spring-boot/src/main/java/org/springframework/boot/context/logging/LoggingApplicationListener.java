@@ -223,7 +223,7 @@ public class LoggingApplicationListener implements GenericApplicationListener {
 			onApplicationEnvironmentPreparedEvent(environmentPreparedEvent);
 		}
 		else if (event instanceof ApplicationPreparedEvent preparedEvent) {
-			onApplicationPreparedEvent(preparedEvent);
+			onApplicationPreparedEvent(preparedEvent); // jxh: 注册日志bean
 		}
 		else if (event instanceof ContextClosedEvent contextClosedEvent) {
 			onContextClosedEvent(contextClosedEvent);
@@ -234,7 +234,7 @@ public class LoggingApplicationListener implements GenericApplicationListener {
 	}
 
 	private void onApplicationStartingEvent(ApplicationStartingEvent event) {
-		this.loggingSystem = LoggingSystem.get(event.getSpringApplication().getClassLoader());
+		this.loggingSystem = LoggingSystem.get(event.getSpringApplication().getClassLoader()); // jxh: 初始化日志系统
 		this.loggingSystem.beforeInitialize();
 	}
 
@@ -243,7 +243,7 @@ public class LoggingApplicationListener implements GenericApplicationListener {
 		if (this.loggingSystem == null) {
 			this.loggingSystem = LoggingSystem.get(springApplication.getClassLoader());
 		}
-		initialize(event.getEnvironment(), springApplication.getClassLoader());
+		initialize(event.getEnvironment(), springApplication.getClassLoader()); // jxh: 初始化日志系统
 	}
 
 	private void onApplicationPreparedEvent(ApplicationPreparedEvent event) {
@@ -268,7 +268,7 @@ public class LoggingApplicationListener implements GenericApplicationListener {
 		if (applicationContext.getParent() != null || applicationContext.containsBean(LOGGING_LIFECYCLE_BEAN_NAME)) {
 			return;
 		}
-		cleanupLoggingSystem();
+		cleanupLoggingSystem(); // jxh: 清除日志系统
 	}
 
 	void cleanupLoggingSystem() {
@@ -288,6 +288,7 @@ public class LoggingApplicationListener implements GenericApplicationListener {
 	 * @param classLoader the classloader
 	 */
 	protected void initialize(ConfigurableEnvironment environment, ClassLoader classLoader) {
+		// 获取日志系统配置信息
 		getLoggingSystemProperties(environment).apply();
 		this.logFile = LogFile.get(environment);
 		if (this.logFile != null) {

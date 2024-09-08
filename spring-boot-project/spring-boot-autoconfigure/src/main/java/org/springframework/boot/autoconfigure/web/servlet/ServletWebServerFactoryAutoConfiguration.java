@@ -67,11 +67,11 @@ import org.springframework.web.filter.ForwardedHeaderFilter;
 @ConditionalOnClass(ServletRequest.class)
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @EnableConfigurationProperties(ServerProperties.class)
-@Import({ ServletWebServerFactoryAutoConfiguration.BeanPostProcessorsRegistrar.class,
-		ServletWebServerFactoryConfiguration.EmbeddedTomcat.class,
-		ServletWebServerFactoryConfiguration.EmbeddedJetty.class,
-		ServletWebServerFactoryConfiguration.EmbeddedUndertow.class })
-public class ServletWebServerFactoryAutoConfiguration {
+@Import({ ServletWebServerFactoryAutoConfiguration.BeanPostProcessorsRegistrar.class, // jxh: WebServerFactoryCustomizerBeanPostProcessor
+		ServletWebServerFactoryConfiguration.EmbeddedTomcat.class, // jxh: 内嵌tomcat服务器
+		ServletWebServerFactoryConfiguration.EmbeddedJetty.class, // jxh: 内嵌Jetty服务器
+		ServletWebServerFactoryConfiguration.EmbeddedUndertow.class }) // jxh: 内嵌Undertow服务器
+public class ServletWebServerFactoryAutoConfiguration { // jxh: 启动servlet规范的web服务
 
 	@Bean
 	public ServletWebServerFactoryCustomizer servletWebServerFactoryCustomizer(ServerProperties serverProperties,

@@ -125,7 +125,7 @@ public abstract class AutoConfigurationPackages {
 
 		@Override
 		public void registerBeanDefinitions(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
-			register(registry, new PackageImports(metadata).getPackageNames().toArray(new String[0]));
+			register(registry, new PackageImports(metadata).getPackageNames().toArray(new String[0])); // jxh: 扫描注册
 		}
 
 		@Override
