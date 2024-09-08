@@ -53,7 +53,6 @@ import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
-import io.opentelemetry.semconv.ResourceAttributes;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -66,6 +65,7 @@ import org.springframework.boot.actuate.autoconfigure.tracing.OpenTelemetryEvent
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.testsupport.classpath.ForkedClassPath;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -194,7 +194,7 @@ class OpenTelemetryAutoConfigurationTests {
 				exporter.await(Duration.ofSeconds(10));
 				SpanData spanData = exporter.getExportedSpans().get(0);
 				Map<AttributeKey<?>, Object> expectedAttributes = Resource.getDefault()
-					.merge(Resource.create(Attributes.of(ResourceAttributes.SERVICE_NAME, "unknown_service")))
+					.merge(Resource.create(Attributes.of(AttributeKey.stringKey("service.name"), "unknown_service")))
 					.getAttributes()
 					.asMap();
 				assertThat(spanData.getResource().getAttributes().asMap()).isEqualTo(expectedAttributes);
@@ -328,6 +328,7 @@ class OpenTelemetryAutoConfigurationTests {
 	}
 
 	@Test // gh-41439
+	@ForkedClassPath
 	void shouldPublishEventsWhenContextStorageIsInitializedEarly() {
 		this.contextRunner.withInitializer(this::initializeOpenTelemetry)
 			.withUserConfiguration(OtelEventListener.class)

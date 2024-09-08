@@ -44,6 +44,7 @@ import org.springframework.util.Assert;
  * @author Chris Bono
  * @author Phillip Webb
  * @author Swamy Mavuri
+ * @author Vedran Pavic
  * @since 3.2.0
  */
 @ConfigurationProperties("spring.pulsar")
@@ -137,6 +138,11 @@ public class PulsarProperties {
 		private final Authentication authentication = new Authentication();
 
 		/**
+		 * Thread related configuration.
+		 */
+		private final Threads threads = new Threads();
+
+		/**
 		 * Failover settings.
 		 */
 		private final Failover failover = new Failover();
@@ -175,6 +181,10 @@ public class PulsarProperties {
 
 		public Authentication getAuthentication() {
 			return this.authentication;
+		}
+
+		public Threads getThreads() {
+			return this.threads;
 		}
 
 		public Failover getFailover() {
@@ -802,6 +812,11 @@ public class PulsarProperties {
 		private SchemaType schemaType;
 
 		/**
+		 * Number of threads used by listener container.
+		 */
+		private Integer concurrency;
+
+		/**
 		 * Whether to record observations for when the Observations API is available and
 		 * the client supports it.
 		 */
@@ -813,6 +828,14 @@ public class PulsarProperties {
 
 		public void setSchemaType(SchemaType schemaType) {
 			this.schemaType = schemaType;
+		}
+
+		public Integer getConcurrency() {
+			return this.concurrency;
+		}
+
+		public void setConcurrency(Integer concurrency) {
+			this.concurrency = concurrency;
 		}
 
 		public boolean isObservationEnabled() {
@@ -955,6 +978,36 @@ public class PulsarProperties {
 
 		public void setParam(Map<String, String> param) {
 			this.param = param;
+		}
+
+	}
+
+	public static class Threads {
+
+		/**
+		 * Number of threads to be used for handling connections to brokers.
+		 */
+		private Integer io;
+
+		/**
+		 * Number of threads to be used for message listeners.
+		 */
+		private Integer listener;
+
+		public Integer getIo() {
+			return this.io;
+		}
+
+		public void setIo(Integer io) {
+			this.io = io;
+		}
+
+		public Integer getListener() {
+			return this.listener;
+		}
+
+		public void setListener(Integer listener) {
+			this.listener = listener;
 		}
 
 	}
