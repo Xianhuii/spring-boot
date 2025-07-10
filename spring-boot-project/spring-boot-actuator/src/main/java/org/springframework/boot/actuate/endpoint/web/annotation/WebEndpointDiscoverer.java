@@ -83,6 +83,16 @@ public class WebEndpointDiscoverer extends EndpointDiscoverer<ExposableWebEndpoi
 		this.requestPredicateFactory = new RequestPredicateFactory(endpointMediaTypes);
 	}
 
+	/**
+	 * Create a new {@link WebEndpointDiscoverer} instance.
+	 * @param applicationContext the source application context
+	 * @param parameterValueMapper the parameter value mapper
+	 * @param endpointMediaTypes the endpoint media types
+	 * @param endpointPathMappers the endpoint path mappers
+	 * @param invokerAdvisors invoker advisors to apply
+	 * @param endpointFilters endpoint filters to apply
+	 * @param operationFilters operation filters to apply
+	 */
 	@Override
 	protected ExposableWebEndpoint createEndpoint(Object endpointBean, EndpointId id, Access defaultAccess,
 			Collection<WebOperation> operations) {
@@ -91,10 +101,18 @@ public class WebEndpointDiscoverer extends EndpointDiscoverer<ExposableWebEndpoi
 				this.additionalPathsMappers);
 	}
 
+	/**
+	 * Create a new {@link WebOperation} instance.
+	 * @param endpointId the endpoint id
+	 * @param operationMethod the operation method
+	 * @param invoker the operation invoker
+	 * @return the web operation
+	 */
 	@Override
 	protected WebOperation createOperation(EndpointId endpointId, DiscoveredOperationMethod operationMethod,
 			OperationInvoker invoker) {
 		String rootPath = PathMapper.getRootPath(this.endpointPathMappers, endpointId);
+		// 创建请求谓词
 		WebOperationRequestPredicate requestPredicate = this.requestPredicateFactory.getRequestPredicate(rootPath,
 				operationMethod);
 		return new DiscoveredWebOperation(endpointId, operationMethod, invoker, requestPredicate);
@@ -106,8 +124,15 @@ public class WebEndpointDiscoverer extends EndpointDiscoverer<ExposableWebEndpoi
 				() -> "web request predicate " + operation.getRequestPredicate());
 	}
 
+	/**
+	 * {@link RuntimeHintsRegistrar} for {@link WebEndpointDiscoverer}.
+	 */
 	static class WebEndpointDiscovererRuntimeHints implements RuntimeHintsRegistrar {
 
+		/**
+		 * {@link WebEndpointFilter} is used by {@link WebEndpointDiscoverer} and needs to
+		 * be registered for reflection.
+		 */
 		@Override
 		public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
 			hints.reflection().registerType(WebEndpointFilter.class, MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);

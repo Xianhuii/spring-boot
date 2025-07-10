@@ -109,6 +109,10 @@ public class CloudFoundryActuatorAutoConfiguration {
 		return new CloudFoundryInfoEndpointWebExtension(new InfoEndpoint(contributors));
 	}
 
+	/**
+	 * {@link RequestMappingInfoHandlerMapping} to make web endpoints available on Cloud
+	 * Foundry to use.
+	 */
 	@Bean
 	@SuppressWarnings("removal")
 	public CloudFoundryWebEndpointServletHandlerMapping cloudFoundryWebEndpointServletHandlerMapping(
@@ -117,16 +121,19 @@ public class CloudFoundryActuatorAutoConfiguration {
 			org.springframework.boot.actuate.endpoint.web.annotation.ServletEndpointsSupplier servletEndpointsSupplier,
 			org.springframework.boot.actuate.endpoint.web.annotation.ControllerEndpointsSupplier controllerEndpointsSupplier,
 			ApplicationContext applicationContext) {
+		// 创建CloudFoundryWebEndpointDiscoverer
 		CloudFoundryWebEndpointDiscoverer discoverer = new CloudFoundryWebEndpointDiscoverer(applicationContext,
 				parameterMapper, endpointMediaTypes, null, Collections.emptyList(), Collections.emptyList(),
 				Collections.emptyList());
 		SecurityInterceptor securityInterceptor = getSecurityInterceptor(restTemplateBuilder,
 				applicationContext.getEnvironment());
+		// 获取所有 ExposableWebEndpoint
 		Collection<ExposableWebEndpoint> webEndpoints = discoverer.getEndpoints();
 		List<ExposableEndpoint<?>> allEndpoints = new ArrayList<>();
 		allEndpoints.addAll(webEndpoints);
 		allEndpoints.addAll(servletEndpointsSupplier.getEndpoints());
 		allEndpoints.addAll(controllerEndpointsSupplier.getEndpoints());
+		// 创建 CloudFoundryWebEndpointServletHandlerMapping
 		return new CloudFoundryWebEndpointServletHandlerMapping(new EndpointMapping(BASE_PATH), webEndpoints,
 				endpointMediaTypes, getCorsConfiguration(), securityInterceptor, allEndpoints);
 	}
