@@ -68,12 +68,25 @@ abstract class DiscoveredOperationsFactory<O extends Operation> {
 		this.invokerAdvisors = invokerAdvisors;
 	}
 
+	/**
+	 * Create the operations for the given target.
+	 * @param id the endpoint id
+	 * @param target the target
+	 * @return the operations
+	 */
 	Collection<O> createOperations(EndpointId id, Object target) {
 		return MethodIntrospector
 			.selectMethods(target.getClass(), (MetadataLookup<O>) (method) -> createOperation(id, target, method))
 			.values();
 	}
 
+	/**
+	 * Create an operation for the given method.
+	 * @param endpointId the endpoint id
+	 * @param target the target
+	 * @param method the method
+	 * @return the operation
+	 */
 	private O createOperation(EndpointId endpointId, Object target, Method method) {
 		return OPERATION_TYPES.entrySet()
 			.stream()
@@ -83,16 +96,29 @@ abstract class DiscoveredOperationsFactory<O extends Operation> {
 			.orElse(null);
 	}
 
+	/**
+	 * Create an operation for the given method and operation type.
+	 * @param endpointId the endpoint id
+	 * @param target the target
+	 * @param method the method
+	 * @param operationType the operation type
+	 * @param annotationType the annotation type
+	 * @return the operation
+	 */
 	private O createOperation(EndpointId endpointId, Object target, Method method, OperationType operationType,
 			Class<? extends Annotation> annotationType) {
+		// 获取方法上的注解
 		MergedAnnotation<?> annotation = MergedAnnotations.from(method).get(annotationType);
 		if (!annotation.isPresent()) {
 			return null;
 		}
+		// 创建操作方法
 		DiscoveredOperationMethod operationMethod = new DiscoveredOperationMethod(method, operationType,
 				annotation.asAnnotationAttributes());
+		// 创建操作调用器
 		OperationInvoker invoker = new ReflectiveOperationInvoker(target, operationMethod, this.parameterValueMapper);
 		invoker = applyAdvisors(endpointId, operationMethod, invoker);
+		// 创建操作
 		return createOperation(endpointId, operationMethod, invoker);
 	}
 
@@ -107,6 +133,13 @@ abstract class DiscoveredOperationsFactory<O extends Operation> {
 		return invoker;
 	}
 
+	/**
+	 * Create an operation for the given method.
+	 * @param endpointId the endpoint id
+	 * @param operationMethod the operation method
+	 * @param invoker the operation invoker
+	 * @return the operation
+	 */
 	protected abstract O createOperation(EndpointId endpointId, DiscoveredOperationMethod operationMethod,
 			OperationInvoker invoker);
 

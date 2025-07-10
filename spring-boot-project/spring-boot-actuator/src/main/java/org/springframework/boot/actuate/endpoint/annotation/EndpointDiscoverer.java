@@ -125,6 +125,10 @@ public abstract class EndpointDiscoverer<E extends ExposableEndpoint<O>, O exten
 		};
 	}
 
+	/**
+	 * Returns the endpoints that have been discovered.
+	 * @return the endpoints (never {@code null})
+	 */
 	@Override
 	public final Collection<E> getEndpoints() {
 		if (this.endpoints == null) {
@@ -133,20 +137,34 @@ public abstract class EndpointDiscoverer<E extends ExposableEndpoint<O>, O exten
 		return this.endpoints;
 	}
 
+	/**
+	 * Discover the endpoints that are defined in the application context.
+	 * @return the endpoints
+	 */
 	private Collection<E> discoverEndpoints() {
+		// 获取application context中所有被@Endpoint注解的bean
 		Collection<EndpointBean> endpointBeans = createEndpointBeans();
+		// 获取application context中所有被@EndpointExtension注解的bean
 		addExtensionBeans(endpointBeans);
+		// 将EndpointBean转换为ExposableEndpoint
 		return convertToEndpoints(endpointBeans);
 	}
 
+	/**
+	 * Create the endpoint beans that are defined in the application context.
+	 * @return the endpoint beans
+	 */
 	private Collection<EndpointBean> createEndpointBeans() {
 		Map<EndpointId, EndpointBean> byId = new LinkedHashMap<>();
+		// 获取application context中所有被@Endpoint注解的bean
 		String[] beanNames = BeanFactoryUtils.beanNamesForAnnotationIncludingAncestors(this.applicationContext,
 				Endpoint.class);
 		for (String beanName : beanNames) {
 			if (!ScopedProxyUtils.isScopedTarget(beanName)) {
+				// 创建EndpointBean
 				EndpointBean endpointBean = createEndpointBean(beanName);
 				EndpointBean previous = byId.putIfAbsent(endpointBean.getId(), endpointBean);
+				// 校验EndpointBean的id是否重复
 				Assert.state(previous == null, () -> "Found two endpoints with the id '" + endpointBean.getId() + "': '"
 						+ endpointBean.getBeanName() + "' and '" + previous.getBeanName() + "'");
 			}
@@ -154,45 +172,74 @@ public abstract class EndpointDiscoverer<E extends ExposableEndpoint<O>, O exten
 		return byId.values();
 	}
 
+	/**
+	 * Create an {@link EndpointBean} for the given bean name.
+	 * @param beanName the name of the bean
+	 * @return an {@link EndpointBean} for the given bean name
+	 */
 	private EndpointBean createEndpointBean(String beanName) {
 		Class<?> beanType = ClassUtils.getUserClass(this.applicationContext.getType(beanName, false));
+		// 创建获取bean的实例的supplier
 		Supplier<Object> beanSupplier = () -> this.applicationContext.getBean(beanName);
 		return new EndpointBean(this.applicationContext.getEnvironment(), beanName, beanType, beanSupplier);
 	}
 
+	/**
+	 * Add the extension beans that are defined in the application context to the given
+	 * endpoint beans.
+	 * @param endpointBeans the endpoint beans
+	 */
 	private void addExtensionBeans(Collection<EndpointBean> endpointBeans) {
+		// 将endpointBeans按照id分组
 		Map<EndpointId, EndpointBean> byId = endpointBeans.stream()
 			.collect(Collectors.toMap(EndpointBean::getId, Function.identity()));
+		// 获取application context中所有被@EndpointExtension注解的bean
 		String[] beanNames = BeanFactoryUtils.beanNamesForAnnotationIncludingAncestors(this.applicationContext,
 				EndpointExtension.class);
 		for (String beanName : beanNames) {
+			// 创建ExtensionBean
 			ExtensionBean extensionBean = createExtensionBean(beanName);
 			EndpointBean endpointBean = byId.get(extensionBean.getEndpointId());
+			// 校验ExtensionBean对应的EndpointBean是否存在
 			Assert.state(endpointBean != null, () -> ("Invalid extension '" + extensionBean.getBeanName()
 					+ "': no endpoint found with id '" + extensionBean.getEndpointId() + "'"));
+			// 将ExtensionBean添加到EndpointBean中
 			addExtensionBean(endpointBean, extensionBean);
 		}
 	}
 
 	private ExtensionBean createExtensionBean(String beanName) {
 		Class<?> beanType = ClassUtils.getUserClass(this.applicationContext.getType(beanName));
+		// 创建获取bean的实例的supplier
 		Supplier<Object> beanSupplier = () -> this.applicationContext.getBean(beanName);
 		return new ExtensionBean(this.applicationContext.getEnvironment(), beanName, beanType, beanSupplier);
 	}
 
+	/**
+	 * Add the given extension bean to the given endpoint bean.
+	 * @param endpointBean the endpoint bean
+	 * @param extensionBean the extension bean
+	 */
 	private void addExtensionBean(EndpointBean endpointBean, ExtensionBean extensionBean) {
 		if (isExtensionExposed(endpointBean, extensionBean)) {
 			Assert.state(isEndpointExposed(endpointBean) || isEndpointFiltered(endpointBean),
 					() -> "Endpoint bean '" + endpointBean.getBeanName() + "' cannot support the extension bean '"
 							+ extensionBean.getBeanName() + "'");
+			// 将ExtensionBean添加到EndpointBean中
 			endpointBean.addExtension(extensionBean);
 		}
 	}
 
+	/**
+	 * Convert the given endpoint beans to {@link ExposableEndpoint endpoints}.
+	 * @param endpointBeans the endpoint beans
+	 * @return the endpoints
+	 */
 	private Collection<E> convertToEndpoints(Collection<EndpointBean> endpointBeans) {
 		Set<E> endpoints = new LinkedHashSet<>();
 		for (EndpointBean endpointBean : endpointBeans) {
 			if (isEndpointExposed(endpointBean)) {
+				// 将EndpointBean转换为ExposableEndpoint
 				E endpoint = convertToEndpoint(endpointBean);
 				if (isInvocable(endpoint)) {
 					endpoints.add(endpoint);
@@ -214,9 +261,15 @@ public abstract class EndpointDiscoverer<E extends ExposableEndpoint<O>, O exten
 		return !endpoint.getOperations().isEmpty();
 	}
 
+	/**
+	 * Convert the given endpoint bean to an {@link ExposableEndpoint endpoint}.
+	 * @param endpointBean the endpoint bean
+	 * @return the endpoint
+	 */
 	private E convertToEndpoint(EndpointBean endpointBean) {
 		MultiValueMap<OperationKey, O> indexed = new LinkedMultiValueMap<>();
 		EndpointId id = endpointBean.getId();
+		// 将EndpointBean中的操作添加到indexed中
 		addOperations(indexed, id, endpointBean.getDefaultAccess(), endpointBean.getBean(), false);
 		if (endpointBean.getExtensions().size() > 1) {
 			String extensionBeans = endpointBean.getExtensions()
@@ -226,25 +279,41 @@ public abstract class EndpointDiscoverer<E extends ExposableEndpoint<O>, O exten
 			throw new IllegalStateException("Found multiple extensions for the endpoint bean "
 					+ endpointBean.getBeanName() + " (" + extensionBeans + ")");
 		}
+		// 将EndpointBean中的扩展操作添加到indexed中
 		for (ExtensionBean extensionBean : endpointBean.getExtensions()) {
 			addOperations(indexed, id, endpointBean.getDefaultAccess(), extensionBean.getBean(), true);
 		}
 		assertNoDuplicateOperations(endpointBean, indexed);
+		// 从indexed中获取最后一个操作
 		List<O> operations = indexed.values().stream().map(this::getLast).filter(Objects::nonNull).toList();
+		// 创建ExposableEndpoint
 		return createEndpoint(endpointBean.getBean(), id, endpointBean.getDefaultAccess(), operations);
 	}
 
+	/**
+	 * Add the operations from the given target to the indexed map.
+	 * @param indexed the indexed map
+	 * @param id the endpoint id
+	 * @param defaultAccess the default access
+	 * @param target the target
+	 * @param replaceLast if the last operation should be replaced
+	 */
 	private void addOperations(MultiValueMap<OperationKey, O> indexed, EndpointId id, Access defaultAccess,
 			Object target, boolean replaceLast) {
 		Set<OperationKey> replacedLast = new HashSet<>();
+		// 从target中创建操作
 		Collection<O> operations = this.operationsFactory.createOperations(id, target);
 		for (O operation : operations) {
 			if (!isOperationFiltered(operation, id, defaultAccess)) {
+				// 创建操作键
 				OperationKey key = createOperationKey(operation);
+				// 获取最后一个操作
 				O last = getLast(indexed.get(key));
+				// 如果需要替换最后一个操作，则移除最后一个操作
 				if (replaceLast && replacedLast.add(key) && last != null) {
 					indexed.get(key).remove(last);
 				}
+				// 将操作添加到indexed中
 				indexed.add(key, operation);
 			}
 		}
@@ -270,6 +339,13 @@ public abstract class EndpointDiscoverer<E extends ExposableEndpoint<O>, O exten
 		}
 	}
 
+	/**
+	 * Determine if an extension bean should be exposed. Subclasses can override this
+	 * method to provide additional logic.
+	 * @param endpointBean the endpoint bean
+	 * @param extensionBean the extension bean
+	 * @return {@code true} if the extension is exposed
+	 */
 	private boolean isExtensionExposed(EndpointBean endpointBean, ExtensionBean extensionBean) {
 		return isFilterMatch(extensionBean.getFilter(), endpointBean)
 				&& isExtensionTypeExposed(extensionBean.getBeanType());
