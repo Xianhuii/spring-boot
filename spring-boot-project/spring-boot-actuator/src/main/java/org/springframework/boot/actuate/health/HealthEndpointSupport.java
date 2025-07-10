@@ -72,8 +72,18 @@ abstract class HealthEndpointSupport<H, D> {
 		this.slowContributorLoggingThreshold = slowContributorLoggingThreshold;
 	}
 
+	/**
+	 * Return the health result for the specified path.
+	 * @param apiVersion
+	 * @param serverNamespace
+	 * @param securityContext
+	 * @param showAll
+	 * @param path
+	 * @return
+	 */
 	Result<D> getResult(ApiVersion apiVersion, WebServerNamespace serverNamespace, SecurityContext securityContext,
 			boolean showAll, String... path) {
+		// 获取HealthEndpointGroup
 		HealthEndpointGroup group = (path.length > 0) ? getGroup(serverNamespace, path) : null;
 		if (group != null) {
 			return getResult(apiVersion, group, securityContext, showAll, path, 1);
@@ -81,6 +91,12 @@ abstract class HealthEndpointSupport<H, D> {
 		return getResult(apiVersion, this.groups.getPrimary(), securityContext, showAll, path, 0);
 	}
 
+	/**
+	 * Return the health result for the specified path.
+	 * @param serverNamespace
+	 * @param path
+	 * @return
+	 */
 	private HealthEndpointGroup getGroup(WebServerNamespace serverNamespace, String... path) {
 		if (this.groups.get(path[0]) != null) {
 			return this.groups.get(path[0]);
@@ -91,6 +107,16 @@ abstract class HealthEndpointSupport<H, D> {
 		return null;
 	}
 
+	/**
+	 * Return the health result for the specified path.
+	 * @param apiVersion
+	 * @param group
+	 * @param securityContext
+	 * @param showAll
+	 * @param path
+	 * @param pathOffset
+	 * @return
+	 */
 	private Result<D> getResult(ApiVersion apiVersion, HealthEndpointGroup group, SecurityContext securityContext,
 			boolean showAll, String[] path, int pathOffset) {
 		boolean showComponents = showAll || group.showComponents(securityContext);
@@ -100,12 +126,14 @@ abstract class HealthEndpointSupport<H, D> {
 		if (!showComponents && !isRoot) {
 			return null;
 		}
+		// 获取Contributor
 		Contributor<H, D> contributor = getContributor(path, pathOffset);
 		if (contributor == null) {
 			return null;
 		}
 		String name = getName(path, pathOffset);
 		Set<String> groupNames = (!isSystemHealth) ? null : new TreeSet<>(this.groups.getNames());
+		// 获取HealthDescriptor
 		D descriptor = getDescriptor(apiVersion, group, name, contributor, showComponents, showDetails, groupNames);
 		return (descriptor != null) ? new Result<>(descriptor, group) : null;
 	}

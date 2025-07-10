@@ -63,18 +63,34 @@ public class HealthEndpoint extends HealthEndpointSupport<Health, HealthDescript
 		super(Contributor.blocking(registry, fallbackRegistry), groups, slowContributorLoggingThreshold);
 	}
 
+	/**
+	 * Return the health of the application.
+	 * @return
+	 */
 	@ReadOperation
 	public HealthDescriptor health() {
 		HealthDescriptor health = health(ApiVersion.V3, EMPTY_PATH);
 		return (health != null) ? health : IndicatedHealthDescriptor.UP;
 	}
 
+	/**
+	 * Return the health of the application for the specified path.
+	 * @param path
+	 * @return
+	 */
 	@ReadOperation
 	public HealthDescriptor healthForPath(@Selector(match = Match.ALL_REMAINING) String... path) {
 		return health(ApiVersion.V3, path);
 	}
 
+	/**
+	 * Return the health of the application for the specified path.
+	 * @param apiVersion
+	 * @param path
+	 * @return
+	 */
 	private HealthDescriptor health(ApiVersion apiVersion, String... path) {
+		// 获取健康信息
 		Result<HealthDescriptor> result = getResult(apiVersion, null, SecurityContext.NONE, true, path);
 		return (result != null) ? result.descriptor() : null;
 	}
